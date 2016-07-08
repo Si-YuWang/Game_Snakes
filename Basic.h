@@ -1,4 +1,5 @@
 #include<iostream>
+#include<vector>
 #include<windows.h>
 #include<conio.h>
 #define BACKCOLOR 15
@@ -25,6 +26,11 @@ public:
 	void setCoordinate(int xx,int yy){
 		x=xx;
 		y=yy;
+	}
+	coordinate(int xx=0,int yy=0):x(xx),y(yy){}
+	friend int operator == (coordinate&c1,coordinate&c2){
+		if(c1.x==c2.x&&c1.y==c2.y)return 1;
+		else return 0;
 	}
 };
 
@@ -79,7 +85,7 @@ ostream& operator<<(ostream&output, board&game){
 class snake{
 public:
 	char direction;
-	coordinate *body;
+	vector<coordinate>  body;
 	int length;
 	int score;
 	snake();
@@ -101,85 +107,75 @@ public:
 snake::snake(){
 	length=2;
 	score=0;
-	body=new coordinate [length];
-	body->setCoordinate(5,6);
-	(body+1)->setCoordinate(5,5);
+	coordinate temp1(5,6),temp2(5,5);
+	body.push_back(temp2);
+	body.push_back(temp1);
 	direction='d';
 }
 snake::~snake(){
-	delete body;
+	body.~vector<coordinate>();
 }
 void snake::move(int type=0){       //带一个参数是为了双人模式中可以让不同的蛇颜色不同
-	coordinate temp;
-	temp.setCoordinate(body->x,body->y);
+	coordinate head(body[length-1]);
 	switch(direction){
 	case 'w': //upward
-		body->x--;break;
+		body[length-1].x--;break;
 	case 's': //downward
-		body->x++;break;
+		body[length-1].x++;break;
 	case 'a': //leftward
-		body->y--;break;
+		body[length-1].y--;break;
 	case 'd': //rightward
-		body->y++;break;
+		body[length-1].y++;break;
 	default:
 		break;
 	}
-	coordinate temp2=*(body+length-1);
-	for(int i=length-1;i>=2;i--)
-		*(body+i)=*(body+i-1);
-	*(body+1)=temp;
-	gotoxy(body->y,body->x);
+	coordinate temp(body[0]);
+	for(int i=0;i<length-1;i++)
+		body[i]=body[i+1];
+	body[length-2]=head;
+	gotoxy(body[length-1].y,body[length-1].x);
 	if(type)color(SNAKE2COLOR);
 	else color(SNAKE1COLOR);
 	std::cout<<"★";
 	color(BACKCOLOR);
-	gotoxy(temp2.y,temp2.x);
-	std::cout<<"■";
+	if(temp==body[length-1]);     //先判断之前的蛇尾是不是现在的蛇头，如果不是，就把之前蛇尾处的输出改为"■"
+	else{
+		gotoxy(temp.y,temp.x);
+		std::cout<<"■";
+	}
 }
 int snake::eatFood(int xx,int yy,int type=0){ //吃食返回1，没吃返回0；
-	if(body->x==xx&&body->y==yy){
+	coordinate head(body[length-1]);
+	if(head.x==xx&head.y==yy){
 		length++;
 		score++;
-		coordinate* temp=new coordinate [length];
+		coordinate  temp;
 		switch(direction){
 		case 'w': //upward
-			temp->x=body->x-1;
-			temp->y=body->y;break;
+			temp.setCoordinate(head.x-1,head.y);break;
 		case 's': //downward
-			temp->x=body->x+1;
-			temp->y=body->y;break;
+			temp.setCoordinate(head.x+1,head.y);break;
 		case 'a': //leftward
-			temp->y=body->y-1;
-			temp->x=body->x;break;
+			temp.setCoordinate(head.x,head.y-1);break;
 		case 'd': //rightward
-			temp->y=body->y+1;
-			temp->x=body->x;break;
+			temp.setCoordinate(head.x,head.y+1);break;
 		}
-		for(int i=1;i<length;i++){
-			(temp+i)->x=(body+i-1)->x;
-			(temp+i)->y=(body+i-1)->y;
-		}
-		delete body;
-		body=new coordinate[length];
-		for(int i=0;i<length;i++){
-			(body+i)->x=(temp+i)->x;
-			(body+i)->y=(temp+i)->y;
-		}
-		gotoxy(body->y,body->x);
+		body.push_back(temp);
+		gotoxy(temp.y,temp.x);
 		if(type)color(SNAKE2COLOR);
 		else color(SNAKE1COLOR);
 		std::cout<<"★";
 		color(BACKCOLOR);
-		delete temp;
 		return 1;
 	}
 	return 0;
 }
 int snake::judge(int Radius){
 	int i=0;
-	if(body->x==0||body->x==Radius+1||body->y==0||body->y==Radius+1)return 1;
-	for(i=1;i<length;i++)
-		if(body->x==(body+i)->x&&body->y==(body+i)->y)return 1;
+	coordinate head(body[length-1]);
+	if(head.x==0||head.x==Radius+1||head.y==0||head.y==Radius+1)return 1;
+	for(i=0;i<length-1;i++)
+		if(head.x==body[i].x&&head.y==body[i].y)return 1;
 	return 0;
 }
 
@@ -188,7 +184,7 @@ public:
 	coordinate food;
 	snakeBoard(int r);  
 	int checkSnake(int i,int j); //检查一个点是不是在蛇身上,是则返回1，否则返回0
-	int judge();  //判读游戏是否结束,是则返回1，否则返回0
+	//	int judge();  //判读游戏是否结束,是则返回1，否则返回0
 	void addFood(); //产生新的食物
 	void initDisplay();
 };
@@ -212,19 +208,10 @@ snakeBoard::snakeBoard(int r=15):snake(),board(r){
 int snakeBoard::checkSnake(int i,int j){   
 	int num;
 	for(num=0;num<length;num++)
-		if((body+num)->x==i&&(body+num)->y==j)return 1;
+		if(body[num].x==i&&body[num].y==j)return 1;
 	return 0;
 }
 void snakeBoard::initDisplay(){
-	/*int i,j;
-	for(i=0;i<Radius+2;i++){
-		for(j=0;j<Radius+2;j++){
-			color(BACKCOLOR);
-			if(*(*(all+i)+j))cout<<"■";
-			else cout<<"□";
-		}
-		cout<<endl;
-	}*/
 	cout<<*this;
 	color(BACKCOLOR);
 	gotoxy(Radius+7,5);
@@ -232,9 +219,9 @@ void snakeBoard::initDisplay(){
 	gotoxy(Radius+7,6);
 	std::cout<<"Length:"<<length;
 	color(SNAKE1COLOR);
-	gotoxy(body->y,body->x);
+	gotoxy(body[0].y,body[0].x);
 	std::cout<<"★";
-	gotoxy((body+1)->y,(body+1)->x);
+	gotoxy(body[1].y,body[1].x);
 	std::cout<<"★";
 	gotoxy(food.y,food.x);
 	color(FOODCOLOR);
@@ -243,12 +230,12 @@ void snakeBoard::initDisplay(){
 	gotoxy(0,Radius+3);
 
 }
-int snakeBoard::judge(){
-	if(body->x==0||body->x==Radius+1||body->y==0||body->y==Radius+1)return 1;
-	for(int i=1;i<length;i++)
-		if(body->x==(body+i)->x&&body->y==(body+i)->y)return 1;
-	return 0;
-}
+/*int snakeBoard::judge(){
+if(body->x==0||body->x==Radius+1||body->y==0||body->y==Radius+1)return 1;
+for(int i=1;i<length;i++)
+if(body->x==(body+i)->x&&body->y==(body+i)->y)return 1;
+return 0;
+}*/
 
 class Mode2Board:public board{
 public:
@@ -262,17 +249,17 @@ public:
 	void addFood();
 };
 Mode2Board::Mode2Board(int r=15):board(r){
-	player2.body->setCoordinate(Radius-5,5);
-	(player2.body+1)->setCoordinate(Radius-5,6);
+	player2.body[0].setCoordinate(Radius-5,5);
+	player2.body[1].setCoordinate(Radius-5,6);
 	food.x=rand()%Radius+1;
 	food.y=rand()%Radius+1;
 }
 int Mode2Board::checkSnakes(int x,int y){
 	int num;
 	for(num=0;num<player1.length;num++)
-		if((player1.body+num)->x==x&&(player1.body+num)->y==y)return 1;
-	for(num=0;num<player1.length;num++)
-		if((player2.body+num)->x==x&&(player2.body+num)->y==y)return 1;
+		if(player1.body[num].x==x&&player1.body[num].y==y)return 1;
+	for(num=0;num<player2.length;num++)
+		if(player2.body[num].x==x&&player2.body[num].y==y)return 1;
 	return 0;
 }
 void Mode2Board::addFood(){
@@ -292,15 +279,15 @@ int Mode2Board::judge(){   //检查游戏是否结束以及哪个玩家获胜，未结束返回0，play
 	if(player1.judge(Radius)) return 2;
 	if(player2.judge(Radius))return 1;
 	int i;
-	for(i=1;i<player1.length;i++)
-		if(player1.body->x==(player1.body+i)->x&&player1.body->y==(player1.body+i)->y)return 2;
-	for(i=1;i<player2.length;i++)
-		if(player2.body->x==(player2.body+i)->x&&player2.body->y==(player2.body+i)->y)return 1;
-	for(i=1;i<player1.length;i++)
-		if(player2.body->x==(player1.body+i)->x&&player2.body->y==(player1.body+i)->y)return 1;
-	for(i=1;i<player2.length;i++)
-		if(player1.body->x==(player2.body+i)->x&&player1.body->y==(player2.body+i)->y)return 2;
-	if(player1.body->x==player2.body->x&&player1.body->y==player2.body->y){
+	for(i=0;i<player1.length-1;i++)
+		if(player1.body[player1.length-1].x==player1.body[i].x&&player1.body[player1.length-1].y==player1.body[i].y)return 2;
+	for(i=0;i<player2.length-1;i++)
+		if(player2.body[player2.length-1].x==player2.body[i].x&&player2.body[player2.length-1].y==player2.body[i].y)return 1;
+	for(i=0;i<player1.length-1;i++)
+		if(player2.body[player2.length-1].x==player1.body[i].x&&player2.body[player2.length-1].y==player1.body[i].y)return 1;
+	for(i=0;i<player2.length-1;i++)
+		if(player1.body[player1.length-1].x==player2.body[i].x&&player1.body[player1.length-1].y==player2.body[i].y)return 2;
+	if(player1.body[player1.length-1].x==player2.body[player2.length-1].x&&player1.body[player1.length-1].y==player2.body[player2.length-1].y){
 		if(player1.score==player2.score)return 3;
 		if(player1.score>player2.score)return 1;
 		if(player1.score<player2.score)return 2;}
@@ -322,14 +309,14 @@ void Mode2Board::initDisplay(){
 	gotoxy(Radius+7,11);
 	std::cout<<"Length:"<<player2.length;
 	color(SNAKE1COLOR);
-	gotoxy(player1.body->y,player1.body->x);
+	gotoxy(player1.body[1].y,player1.body[1].x);
 	std::cout<<"★";
-	gotoxy((player1.body+1)->y,(player1.body+1)->x);
+	gotoxy(player1.body[0].y,player1.body[0].x);
 	std::cout<<"★";
-	gotoxy(player2.body->y,player2.body->x);
+	gotoxy(player2.body[0].y,player2.body[0].x);
 	color(SNAKE2COLOR);
 	std::cout<<"★";
-	gotoxy((player2.body+1)->y,(player2.body+1)->x);
+	gotoxy(player2.body[1].y,player2.body[1].x);
 	std::cout<<"★";
 	gotoxy(food.y,food.x);
 	color(FOODCOLOR);

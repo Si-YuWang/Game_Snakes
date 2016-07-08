@@ -77,7 +77,7 @@ void onePlayerMode(int size){
 		else Game.move();
 		gotoxy(0,Game.Radius+3);
 		Sleep(abs(300-2*Game.score)); //控制运动速度
-		if(Game.judge()){
+		if(Game.judge(Game.Radius)){
 			score=Game.score;
 			break;
 		}
