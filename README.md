@@ -1,3 +1,4 @@
 # Game
-C++Homework
+C++ Homework.
+
 To practise using git.
