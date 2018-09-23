@@ -323,4 +323,4 @@ void Mode2Board::initDisplay(){
 	std::cout<<"¡ñ";
 	color(BACKCOLOR);
 	gotoxy(0,Radius+3);
-}
+}`
