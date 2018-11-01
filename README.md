@@ -1,4 +1,4 @@
-# Game
+# Game Snakes
 C++ Homework.
 
-To practise using git.
+A simple implementation of Snake in C++. 
